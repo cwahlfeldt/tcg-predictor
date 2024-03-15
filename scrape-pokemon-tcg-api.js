@@ -3,7 +3,7 @@ const fs = require("fs");
 const scrapeEbayListingImages = require("./scrape-ebay-images");
 
 const PAGE_SIZE = 50;
-const START_PAGE_NUM = 1;
+const START_PAGE_NUM = 96;
 
 // Function to fetch data from the Pokemon TCG API
 async function fetchData(pageNumber) {
