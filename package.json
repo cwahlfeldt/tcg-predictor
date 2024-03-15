@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@tensorflow/tfjs-node": "^4.17.0",
     "axios": "^1.6.7",
     "cheerio": "^1.0.0-rc.12"
   }

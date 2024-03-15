@@ -3,7 +3,7 @@ const axios = require("axios");
 const fs = require("fs").promises;
 
 // Load the JSON data containing card images and labels
-const cards = require("../data/pokemon_tcg_all_pages.json");
+const cards = require("./data/pokemon_tcg_data.json");
 
 // Function to fetch and preprocess images
 async function fetchAndPreprocessImages() {
@@ -18,9 +18,9 @@ async function fetchAndPreprocessImages() {
       const imageTensor = tf.node.decodeImage(imageData, 3); // Convert to RGB format
       const resized = tf.image.resizeBilinear(imageTensor, [100, 100]);
       images.push(resized);
-      labels.push(card.listingName);
+      labels.push(card.searchKeywords);
     } catch (error) {
-      console.error(`Error fetching image for ${card.listingName}:`, error);
+      console.error(`Error fetching image for ${card.searchKeywords}:`, error);
     }
   }
   return { images, labels };
@@ -55,7 +55,7 @@ async function trainModel() {
   const { images, labels } = await fetchAndPreprocessImages();
   const xs = tf.stack(images);
   const ys = tf.tensor1d(
-    labels.map((label) => cards.findIndex((card) => card.listingName === label))
+    labels.map((label) => cards.findIndex((card) => card.searchKeywords === label))
   );
 
   // Normalize the pixel values

@@ -1,6 +1,8 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 
+const IMAGE_LIMIT = 50;
+
 async function scrapeEbayListingImages(searchQuery) {
   try {
     const response = await axios.get(`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(searchQuery)}`);
@@ -9,7 +11,7 @@ async function scrapeEbayListingImages(searchQuery) {
     const images = [];
 
     $('.srp-results').find('.s-item').each((index, element) => {
-      if (index >= 10) return false; // Stop after 10 listings
+      if (index >= IMAGE_LIMIT) return false; // Stop after 10 listings
 
       const imageElement = $(element).find('.s-item__image-wrapper img');
       const imageUrl = imageElement.attr('src');
@@ -26,12 +28,4 @@ async function scrapeEbayListingImages(searchQuery) {
   }
 }
 
-// Example usage
-const searchQuery = 'charizard base set psa 10';
-scrapeEbayListingImages(searchQuery)
-  .then(images => {
-    console.log('Listing Images:', images);
-  })
-  .catch(error => {
-    console.error('Error:', error);
-  });
+module.exports = scrapeEbayListingImages;
