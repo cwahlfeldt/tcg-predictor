@@ -4,7 +4,7 @@ const fs = require("fs").promises;
 const args = process.argv.slice(2);
 
 // Load the JSON data containing card images and labels
-const cards = require("./data/pokemon_tcg_data.json");
+// const cards = require("./data/pokemon_tcg_data_page_1.json");
 
 // Load the saved model
 async function loadModel() {
@@ -52,8 +52,8 @@ async function predictCard(imageUrl) {
   const preprocessedImage = await preprocessImage(imageData);
   const prediction = model.predict(preprocessedImage);
   const predictedClassIndex = prediction.argMax(axis = 1).dataSync()[0];
-  const predictedCard = cards[predictedClassIndex];
-  console.log("Predicted card:", predictedCard.searchKeywords);
+  // const predictedCard = cards[predictedClassIndex];
+  console.log("Predicted card:", prediction);
 }
 
 // Usage example

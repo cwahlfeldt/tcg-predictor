@@ -1,7 +1,8 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
+const args = process.argv.slice(2);
 
-const IMAGE_LIMIT = 50;
+const IMAGE_LIMIT = 100;
 
 async function scrapeEbayListingImages(searchQuery) {
   try {
@@ -27,5 +28,13 @@ async function scrapeEbayListingImages(searchQuery) {
     return [];
   }
 }
+
+// Usage example
+const searchQuery = args[0] || 'pokemon cards';
+scrapeEbayListingImages(searchQuery).then(images => {
+  // console.log('Scraped images:', images);
+}).catch(error => {
+  console.error('Error scraping images:', error);
+});
 
 module.exports = scrapeEbayListingImages;

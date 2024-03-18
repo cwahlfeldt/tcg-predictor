@@ -3,7 +3,7 @@ const fs = require("fs");
 const scrapeEbayListingImages = require("./scrape-ebay-images");
 
 const PAGE_SIZE = 50;
-const START_PAGE_NUM = 96;
+const START_PAGE_NUM = 1;
 
 // Function to fetch data from the Pokemon TCG API
 async function fetchData(pageNumber) {
@@ -35,6 +35,37 @@ function saveToFile(data, pageNum) {
   });
 }
 
+async function processPokemonData(data) {
+  // Use async/await with Promise.all to handle the asynchronous operation
+  const processedData = await Promise.all(data.data.map(async (pokemon, i) => {
+    // Call the async function to get the image URLs for the current pokemon
+
+    const pokemonData = {
+      id: pokemon.id, // Modify the id to ensure uniqueness
+      unique_id: `${pokemon.id}_OG`, // Modify the id to ensure uniqueness
+      searchKeywords: `Pokémon TCG ${pokemon.name} ${pokemon.set.series} ${pokemon.set.name} ${pokemon.number}/${pokemon.set.total} ${pokemon?.rarity ? pokemon.rarity : ''}`,
+      name: pokemon.name,
+      imageUrl: pokemon.images.large, // Use the image URL from the async function
+    };
+
+    const ebayListingImages = await scrapeEbayListingImages(pokemonData.searchKeywords);
+
+    // Map each image URL to a new object structure
+    const ebayListings = ebayListingImages.map((imageUrl, index) => ({
+      id: pokemon.id, // Modify the id to ensure uniqueness
+      unique_id: `${pokemon.id}_${index}`, // Modify the id to ensure uniqueness
+      searchKeywords: `Pokémon TCG ${pokemon.name} ${pokemon.set.series} ${pokemon.set.name} ${pokemon.number}/${pokemon.set.total} ${pokemon?.rarity ? pokemon.rarity : ''}`,
+      name: pokemon.name,
+      imageUrl: imageUrl, // Use the image URL from the async function
+    }));
+
+    return [pokemonData, ...ebayListings];
+  }));
+
+  // Flatten the array since the previous step returns an array of arrays
+  return processedData.flat();
+}
+
 // Main function to scrape and save data
 async function scrapeAndSaveData() {
   let allData = []; // Accumulate data from all pages
@@ -49,7 +80,8 @@ async function scrapeAndSaveData() {
   // Extract total count and calculate total pages
   const totalCount = firstPageData.totalCount;
   const pageSize = firstPageData.pageSize;
-  const totalPages = Math.ceil(totalCount / pageSize);
+  // const totalPages = Math.ceil(totalCount / pageSize);
+  const totalPages = 2;
 
   console.log(`Total pages available: ${totalPages}`);
 
@@ -57,48 +89,10 @@ async function scrapeAndSaveData() {
   for (let i = START_PAGE_NUM; i <= totalPages; i++) {
     console.log(`Fetching data for page ${i}...`);
     const data = await fetchData(i);
-    if (data) {
-      const processedData = data.data.map((pokemon) => {
-        return {
-          id: pokemon.id,
-          searchKeywords: `${pokemon.name} ${pokemon.set.series} ${pokemon.set.name} ${pokemon.number}/${pokemon.set.total} ${pokemon?.rarity ? pokemon.rarity : ''}`,
-          name: pokemon.name,
-          imageUrl: pokemon.images.large,
-          // superType: pokemon.supertype,
-          // subTypes: pokemon.subtypes,
-          // level: pokemon.level,
-          // hp: pokemon.hp,
-          // types: pokemon.types,
-          // setName: pokemon.set.name,
-          // seriesName: pokemon.set.series,
-          // setTotal: pokemon.set.total,
-          // numberInSet: pokemon.number,
-          // rarity: pokemon.rarity,
-          // artist: pokemon.artist,
-          // attacks: pokemon.attacks,
-          // weaknesses: pokemon.weaknesses,
-          // flavorText: pokemon.flavorText,
-          // nationalPokedexNumbers: pokemon.nationalPokedexNumbers,
-        };
-      });
 
-      let newData = processedData; // Append data from current page
+    const pokemonData = await processPokemonData(data);
 
-      for await (const pokemon of processedData) {
-        const ebayListingImages = await scrapeEbayListingImages(pokemon.searchKeywords)
-        let listingPokemonData = [];
-
-        for (let i = 0; i < ebayListingImages.length; i++) {
-          let newPokemon = pokemon;
-          newPokemon.imageUrl = ebayListingImages[i];
-          listingPokemonData.push(newPokemon);
-        }
-
-        newData = newData.concat(listingPokemonData);
-      };
-
-      saveToFile(newData, i);
-    }
+    saveToFile(pokemonData, i);
   }
 }
 
