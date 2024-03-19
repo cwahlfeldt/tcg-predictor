@@ -1,14 +1,14 @@
-const axios = require('axios');
-const cheerio = require('cheerio');
+import axios from 'axios';
+import { load } from 'cheerio';
 const args = process.argv.slice(2);
 
 const IMAGE_LIMIT = 100;
 
 async function scrapeEbayListingImages(searchQuery) {
   try {
-    const response = await axios.get(`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(searchQuery)}`);
+    const response = await axios(`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(searchQuery)}`);
 
-    const $ = cheerio.load(response.data);
+    const $ = load(response.data);
     const images = [];
 
     $('.srp-results').find('.s-item').each((index, element) => {
@@ -30,11 +30,11 @@ async function scrapeEbayListingImages(searchQuery) {
 }
 
 // Usage example
-const searchQuery = args[0] || 'pokemon cards';
-scrapeEbayListingImages(searchQuery).then(images => {
-  // console.log('Scraped images:', images);
-}).catch(error => {
-  console.error('Error scraping images:', error);
-});
+// const searchQuery = args[0] || 'pokemon cards';
+// scrapeEbayListingImages(searchQuery).then(images => {
+//   // console.log('Scraped images:', images);
+// }).catch(error => {
+//   console.error('Error scraping images:', error);
+// });
 
-module.exports = scrapeEbayListingImages;
+export default scrapeEbayListingImages;

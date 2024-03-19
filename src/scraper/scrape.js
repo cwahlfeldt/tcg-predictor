@@ -1,6 +1,6 @@
-const axios = require("axios");
-const fs = require("fs");
-const scrapeEbayListingImages = require("./scrape-ebay-images");
+import axios from "axios";
+import { writeFile } from "fs";
+import scrapeEbayListingImages from "./scrape-ebay-images.js";
 
 const PAGE_SIZE = 50;
 const START_PAGE_NUM = 1;
@@ -25,8 +25,8 @@ async function fetchData(pageNumber) {
 
 // Function to save data to a JSON file
 function saveToFile(data, pageNum) {
-  const fileName = `data/pokemon_tcg_data_page_${pageNum}.json`;
-  fs.writeFile(fileName, JSON.stringify(data), (err) => {
+  const fileName = `../../data/pokemon_tcg_data_page_${pageNum}.json`;
+  writeFile(fileName, JSON.stringify(data), (err) => {
     if (err) {
       console.error("Error writing to file:", err);
     } else {

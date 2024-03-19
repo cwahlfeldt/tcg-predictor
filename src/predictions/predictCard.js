@@ -1,14 +1,12 @@
-const tf = require("@tensorflow/tfjs-node");
-const axios = require("axios");
-const fs = require("fs").promises;
-const args = process.argv.slice(2);
+import tf from "@tensorflow/tfjs-node";
+import axios from "axios";
+import cards from "../../data/pokemon_tcg_data_page_1.json" assert { type: "json" };
 
-// Load the JSON data containing card images and labels
-// const cards = require("./data/pokemon_tcg_data_page_1.json");
+const args = process.argv.slice(2);
 
 // Load the saved model
 async function loadModel() {
-  const model = await tf.loadLayersModel("file://./trained_pokemon_tcg_model/model.json");
+  const model = await tf.loadLayersModel("file://./models/trained_pokemon_tcg_model/model.json");
   return model;
 }
 
@@ -51,11 +49,14 @@ async function predictCard(imageUrl) {
 
   const preprocessedImage = await preprocessImage(imageData);
   const prediction = model.predict(preprocessedImage);
-  const predictedClassIndex = prediction.argMax(axis = 1).dataSync()[0];
-  // const predictedCard = cards[predictedClassIndex];
-  console.log("Predicted card:", prediction);
+  const predictedClassIndex = prediction.argMax(tf.axis = 1).dataSync()[0];
+  const predictedCard = cards[predictedClassIndex];
+  console.log("Predicted card:", predictedCard);
+  return predictedCard;
 }
 
-// Usage example
-const imageUrl = "https://images.pokemontcg.io/dp3/1_hires.png"; // Replace with the actual image URL
-predictCard(args[0] || imageUrl);
+export default predictCard;
+
+// // Usage example
+// const imageUrl = "https://images.pokemontcg.io/dp3/1_hires.png"; // Replace with the actual image URL
+// predictCard(args[0] || imageUrl);

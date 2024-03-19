@@ -1,6 +1,6 @@
 const tf = require("@tensorflow/tfjs-node");
 const axios = require("axios");
-const cards = require("./data/pokemon_tcg_data_page_1.json");
+const cards = require("../../data/pokemon_tcg_data_page_1.json");
 
 // Function to fetch and preprocess a single image
 async function fetchAndPreprocessImage(card) {
