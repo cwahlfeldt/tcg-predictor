@@ -2,20 +2,24 @@
   "name": "tcg-predictor",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "src/server.js",
   "type": "module",
   "scripts": {
     "start": "node ./src/server.js",
-    "train": "node ./src/trainModel.js",
-    "scrape": "node ./src/scrape.js",
+    "train": "node --max-old-space-size=16384 ./src/predictions/trainModel.js",
+    "scrapeApi": "node ./src/scraper/scrape.js",
+    "scrape": "node ./src/scraper/scrapeEbayPokemon.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "waffles",
   "license": "ISC",
   "dependencies": {
     "@tensorflow/tfjs-node": "^4.17.0",
     "axios": "^1.6.7",
     "cheerio": "^1.0.0-rc.12",
-    "fastify": "^4.26.2"
+    "fastify": "^4.26.2",
+    "mongodb": "^6.5.0",
+    "stream-array": "^1.1.2",
+    "stream-json": "^1.8.0"
   }
 }

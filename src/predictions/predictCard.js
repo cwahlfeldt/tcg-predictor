@@ -1,12 +1,17 @@
 import tf from "@tensorflow/tfjs-node";
 import axios from "axios";
-import cards from "../../data/pokemon_tcg_data_page_1.json" assert { type: "json" };
+import fetchPokemon from "../util/fetchPokemonApi.js";
+// import cards  from  "../../data/0_ampharos.json" assert { type: "json" }
+import cards from "../../all-training-pokemon-data.json" assert { type: "json" }
+// import cards2  from  "../../data/1_aerodactyl.json" assert { type: "json" }
+// const cards = [...cards1, ...cards2]
 
 const args = process.argv.slice(2);
+console.log(cards.length)
 
 // Load the saved model
 async function loadModel() {
-  const model = await tf.loadLayersModel("file://./models/trained_pokemon_tcg_model/model.json");
+  const model = await tf.loadLayersModel("file://./trained_pokemon_tcg_model/model.json");
   return model;
 }
 
@@ -49,14 +54,17 @@ async function predictCard(imageUrl) {
 
   const preprocessedImage = await preprocessImage(imageData);
   const prediction = model.predict(preprocessedImage);
-  const predictedClassIndex = prediction.argMax(tf.axis = 1).dataSync()[0];
+  const predictedClassIndex = prediction.argMax(1).dataSync()[0];
   const predictedCard = cards[predictedClassIndex];
-  console.log("Predicted card:", predictedCard);
-  return predictedCard;
+  const cardId = predictedCard.id.split("__")[0];
+  const card = await fetchPokemon(cardId);
+  console.log("Predicted card I:", predictedClassIndex);
+  console.log("Predicted card:", card);
+  return card;
 }
 
 export default predictCard;
 
-// // Usage example
-// const imageUrl = "https://images.pokemontcg.io/dp3/1_hires.png"; // Replace with the actual image URL
-// predictCard(args[0] || imageUrl);
+// Usage example
+const imageUrl = "https://images.pokemontcg.io/dp3/1_hires.png"; // Replace with the actual image URL
+predictCard(args[0] || imageUrl);

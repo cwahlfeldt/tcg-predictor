@@ -1,8 +1,8 @@
 import axios from "axios";
 import { writeFile } from "fs";
-import scrapeEbayListingImages from "./scrape-ebay-images.js";
+// import scrapeEbayListingImages from "./scrape-ebay-images.js";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 100;
 const START_PAGE_NUM = 1;
 
 // Function to fetch data from the Pokemon TCG API
@@ -25,7 +25,7 @@ async function fetchData(pageNumber) {
 
 // Function to save data to a JSON file
 function saveToFile(data, pageNum) {
-  const fileName = `../../data/pokemon_tcg_data_page_${pageNum}.json`;
+  const fileName = `data/pokemon_tcg_data_page_${pageNum}.json`;
   writeFile(fileName, JSON.stringify(data), (err) => {
     if (err) {
       console.error("Error writing to file:", err);
@@ -42,24 +42,27 @@ async function processPokemonData(data) {
 
     const pokemonData = {
       id: pokemon.id, // Modify the id to ensure uniqueness
-      unique_id: `${pokemon.id}_OG`, // Modify the id to ensure uniqueness
-      searchKeywords: `Pokémon TCG ${pokemon.name} ${pokemon.set.series} ${pokemon.set.name} ${pokemon.number}/${pokemon.set.total} ${pokemon?.rarity ? pokemon.rarity : ''}`,
-      name: pokemon.name,
       imageUrl: pokemon.images.large, // Use the image URL from the async function
+      name: pokemon.name,
+      set: pokemon.set.name,
+      series: pokemon.set.series,
+      number: pokemon.number,
+      setTotal: pokemon.set.total,
+      rarity: pokemon?.rarity ? pokemon.rarity : '',
     };
 
-    const ebayListingImages = await scrapeEbayListingImages(pokemonData.searchKeywords);
+    // const ebayListingImages = await scrapeEbayListingImages(pokemonData.searchKeywords);
 
     // Map each image URL to a new object structure
-    const ebayListings = ebayListingImages.map((imageUrl, index) => ({
-      id: pokemon.id, // Modify the id to ensure uniqueness
-      unique_id: `${pokemon.id}_${index}`, // Modify the id to ensure uniqueness
-      searchKeywords: `Pokémon TCG ${pokemon.name} ${pokemon.set.series} ${pokemon.set.name} ${pokemon.number}/${pokemon.set.total} ${pokemon?.rarity ? pokemon.rarity : ''}`,
-      name: pokemon.name,
-      imageUrl: imageUrl, // Use the image URL from the async function
-    }));
+    // const ebayListings = ebayListingImages.map((imageUrl, index) => ({
+    //   id: pokemon.id, // Modify the id to ensure uniqueness
+    //   unique_id: `${pokemon.id}_${index}`, // Modify the id to ensure uniqueness
+    //   searchKeywords: `Pokémon TCG ${pokemon.name} ${pokemon.set.series} ${pokemon.set.name} ${pokemon.number}/${pokemon.set.total} ${pokemon?.rarity ? pokemon.rarity : ''}`,
+    //   name: pokemon.name,
+    //   imageUrl: imageUrl, // Use the image URL from the async function
+    // }));
 
-    return [pokemonData, ...ebayListings];
+    return [pokemonData];
   }));
 
   // Flatten the array since the previous step returns an array of arrays
@@ -68,7 +71,6 @@ async function processPokemonData(data) {
 
 // Main function to scrape and save data
 async function scrapeAndSaveData() {
-  let allData = []; // Accumulate data from all pages
 
   // Fetch the first page to get metadata
   const firstPageData = await fetchData(1);
@@ -80,20 +82,21 @@ async function scrapeAndSaveData() {
   // Extract total count and calculate total pages
   const totalCount = firstPageData.totalCount;
   const pageSize = firstPageData.pageSize;
-  // const totalPages = Math.ceil(totalCount / pageSize);
-  const totalPages = 2;
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   console.log(`Total pages available: ${totalPages}`);
 
+  let allData = []; // Accumulate data from all pages
   // Fetch and accumulate data for each page
   for (let i = START_PAGE_NUM; i <= totalPages; i++) {
     console.log(`Fetching data for page ${i}...`);
     const data = await fetchData(i);
 
     const pokemonData = await processPokemonData(data);
-
-    saveToFile(pokemonData, i);
+    allData = allData.concat(pokemonData);
   }
+
+  saveToFile(allData, 1);
 }
 
 // Call the main function to start scraping

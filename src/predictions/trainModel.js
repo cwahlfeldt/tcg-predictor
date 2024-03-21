@@ -1,29 +1,39 @@
-const tf = require("@tensorflow/tfjs-node");
-const axios = require("axios");
-const cards = require("../../data/pokemon_tcg_data_page_1.json");
+import fs from 'fs';
+import path from 'path';
+import axios from 'axios';
+import * as tf from '@tensorflow/tfjs-node';
+
+const datasetDirectory = './data'; // Adjust the path to your dataset directory
+
+// Function to load cards from a specified JSON file
+async function loadCardsFromJson(filePath) {
+  const rawData = fs.readFileSync(filePath);
+  return JSON.parse(rawData);
+}
 
 // Function to fetch and preprocess a single image
 async function fetchAndPreprocessImage(card) {
   try {
     const response = await axios.get(card.imageUrl, {
-      responseType: "arraybuffer",
+      responseType: 'arraybuffer',
     });
     const imageData = new Uint8Array(response.data);
     const imageTensor = tf.node.decodeImage(imageData, 3);
     const resizedImage = tf.image.resizeBilinear(imageTensor, [100, 100]);
     tf.dispose(imageTensor); // Dispose the unused tensor
-    return resizedImage;
+    return resizedImage.div(tf.scalar(255)); // Normalize the image
   } catch (error) {
-    console.error(`Error fetching image for ${card.searchKeywords}:`, error);
+    console.error(`Error fetching image for ${card.id}:`, error);
     return null; // Return null for failed fetches
   }
 }
 
-// Parallelize image fetching and preprocessing
-async function fetchAndPreprocessImages() {
+// Modified function to accept file path to JSON
+async function fetchAndPreprocessImages(filePath) {
+  const cards = await loadCardsFromJson(filePath);
   const imageFetchPromises = cards.map(card => fetchAndPreprocessImage(card));
   const images = await Promise.all(imageFetchPromises);
-  const labels = cards.map(card => card.searchKeywords);
+  const labels = cards.map(card => cards[card.id]);
 
   // Filter out null images (failed fetches)
   const validImages = images.filter(img => img !== null);
@@ -32,8 +42,8 @@ async function fetchAndPreprocessImages() {
   return { images: validImages, labels: validLabels };
 }
 
-// Initialize and compile the model
-function createModel() {
+// Function to create the model
+function createModel(numClasses) {
   const model = tf.sequential();
   model.add(
     tf.layers.conv2d({
@@ -43,12 +53,13 @@ function createModel() {
       activation: "relu",
     })
   );
+  // Additional model layers and configuration...
   model.add(tf.layers.maxPooling2d({ poolSize: [2, 2] }));
   model.add(tf.layers.conv2d({ kernelSize: 3, filters: 32, activation: "relu" }));
   model.add(tf.layers.maxPooling2d({ poolSize: [2, 2] }));
   model.add(tf.layers.flatten());
   model.add(tf.layers.dense({ units: 64, activation: "relu" }));
-  model.add(tf.layers.dense({ units: cards.length, activation: "softmax" }));
+  model.add(tf.layers.dense({ units: numClasses, activation: "softmax" }));
 
   model.compile({
     optimizer: "adam",
@@ -59,35 +70,58 @@ function createModel() {
   return model;
 }
 
-// Train the model
-async function trainModel() {
-  const model = createModel();
-  const { images, labels } = await fetchAndPreprocessImages();
+// Function to train the model on data from one JSON file
+async function trainModelOnFile(model, filePath) {
+  const { images, labels } = await fetchAndPreprocessImages(filePath);
+  console.log(`Fetched ${images.length} images from ${filePath}.`);
 
   const xs = tf.stack(images);
-  images.forEach(img => tf.dispose(img)); // Dispose images after stacking
-  const ys = tf.tensor1d(
-    labels.map(label =>
-      cards.findIndex(card => card.searchKeywords === label)
-    )
-  );
+  const ys = tf.tensor1d(labels, 'float32'); // Adjust according to your actual label encoding
 
-  const xsNormalized = xs.div(tf.scalar(255));
-
-  await model.fit(xsNormalized, ys, {
+  await model.fit(xs, ys, {
     epochs: 10,
-    callbacks: {
-      onEpochEnd: (epoch, logs) => {
-        console.log(`Epoch ${epoch + 1} - loss: ${logs.loss.toFixed(4)} - accuracy: ${logs.acc.toFixed(4)}`);
-      },
-    },
+    batchSize: 32, // Adjust based on your needs
+    callbacks: [tf.callbacks.earlyStopping({ patience: 3 })],
   });
 
-  await model.save("file://./trained_pokemon_tcg_model");
-  console.log("Model trained and saved successfully.");
+  await model.save(`file://./trained_pokemon_tcg_model`);
+  console.log(`Model retrained and saved successfully after training on ${path.basename(filePath)}.`);
 
-  // Dispose the tensors
-  tf.dispose([xs, ys, xsNormalized]);
+  tf.dispose([xs, ys]);
 }
 
-trainModel();
+// Iterate over JSON files in the dataset directory and train sequentially
+async function trainModelSequentially() {
+  let files = fs.readdirSync(datasetDirectory).filter(file => file.endsWith('.json'));
+
+  // Sort files by their leading numeric index
+  files.sort((a, b) => {
+    const aIndex = parseInt(a.split('_')[0], 10); // Extract the numeric index before the underscore
+    const bIndex = parseInt(b.split('_')[0], 10);
+    return aIndex - bIndex; // Sort numerically
+  });
+
+  // Assuming numClasses is known or computed
+  const numClasses = 1252348; // Adjust based on your actual number of classes
+  let model = createModel(numClasses); // Initialize model
+
+  for (const file of files) {
+    console.log(`Starting training on file: ${file}`);
+    await trainModelOnFile(model, path.join(datasetDirectory, file));
+    // The model is saved after each file's training
+  }
+
+  console.log('Training completed on all files.');
+}
+
+// Main function to handle the process
+async function main() {
+  try {
+    await trainModelSequentially();
+    console.log('All training sessions have been successfully completed.');
+  } catch (error) {
+    console.error("An error occurred during the training process:", error);
+  }
+}
+
+main();
