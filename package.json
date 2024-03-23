@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node ./src/server.js",
-    "train": "node --max-old-space-size=16384 ./src/predictions/trainModel.js",
+    "train": "node --max-old-space-size=32768 ./src/predictions/trainModel.js",
     "scrapeApi": "node ./src/scraper/scrape.js",
     "scrape": "node ./src/scraper/scrapeEbayPokemon.js",
     "test": "echo \"Error: no test specified\" && exit 1"
