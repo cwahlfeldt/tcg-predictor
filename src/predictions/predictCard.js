@@ -1,10 +1,10 @@
 import tf from "@tensorflow/tfjs-node";
 import axios from "axios";
 import fetchPokemon from "../util/fetchPokemonApi.js";
-// import cards  from  "../../data/0_ampharos.json" assert { type: "json" }
-import cards from "../../all-training-pokemon-data.json" assert { type: "json" }
-// import cards2  from  "../../data/1_aerodactyl.json" assert { type: "json" }
-// const cards = [...cards1, ...cards2]
+import cards1  from  "../../data/0_ampharos.json" assert { type: "json" }
+// import cards from "../../data/" assert { type: "json" }
+import cards2  from  "../../data/1_aerodactyl.json" assert { type: "json" }
+const cards = [...cards1, ...cards2]
 
 const args = process.argv.slice(2);
 console.log(cards.length)
@@ -66,5 +66,5 @@ async function predictCard(imageUrl) {
 export default predictCard;
 
 // Usage example
-const imageUrl = "https://images.pokemontcg.io/dp3/1_hires.png"; // Replace with the actual image URL
+const imageUrl = "https://i.ebayimg.com/thumbs/images/g/Uu8AAOSwMQBly4ZH/s-l300.jpg"; // Replace with the actual image URL
 predictCard(args[0] || imageUrl);

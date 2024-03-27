@@ -1,6 +1,9 @@
 import tf from "@tensorflow/tfjs-node";
 import axios from "axios";
-import cards  from  "../../data/all-training-pokemon-data.json" assert { type: "json" }
+import theCards1 from "../../data/0_ampharos.json" assert { type: "json" };
+
+// console.log(theCards.length)
+trainModel(theCards1);
 
 // Function to fetch and preprocess a single image
 async function fetchAndPreprocessImage(card) {
@@ -20,22 +23,24 @@ async function fetchAndPreprocessImage(card) {
 }
 
 // Parallelize image fetching and preprocessing
-async function fetchAndPreprocessImages() {
-  const imageFetchPromises = cards.map(card => fetchAndPreprocessImage(card));
+async function fetchAndPreprocessImages(cards) {
+  const imageFetchPromises = cards.map((card) => fetchAndPreprocessImage(card));
   const images = await Promise.all(imageFetchPromises);
-  const labels = cards.map(card => card.id);
+  const labels = cards.map((card) => card.id);
 
   // Filter out null images (failed fetches)
-  const validImages = images.filter(img => img !== null);
+  const validImages = images.filter((img) => img !== null);
   const validLabels = labels.filter((_, index) => images[index] !== null);
 
   return { images: validImages, labels: validLabels };
 }
 
 // Function to load or create the model
-async function loadOrCreateModel() {
+async function loadOrCreateModel(cards) {
   try {
-    const model = await tf.loadLayersModel("file://./trained_pokemon_tcg_model/model.json");
+    const model = await tf.loadLayersModel(
+      "file://./trained_pokemon_tcg_model/model.json"
+    );
     console.log("Model loaded successfully.");
     // The model is loaded, but we need to compile it again before training or evaluation.
     model.compile({
@@ -46,12 +51,12 @@ async function loadOrCreateModel() {
     return model;
   } catch (error) {
     console.log("Model not found, creating a new one.");
-    return createModel(); // This model will be compiled in the function
+    return createModel(cards.length); // This model will be compiled in the function
   }
 }
 
 // Initialize and compile the model
-function createModel() {
+async function createModel(unitSize) {
   const model = tf.sequential();
   model.add(
     tf.layers.conv2d({
@@ -63,11 +68,13 @@ function createModel() {
   );
   // Additional model layers and configuration as before...
   model.add(tf.layers.maxPooling2d({ poolSize: [2, 2] }));
-  model.add(tf.layers.conv2d({ kernelSize: 3, filters: 32, activation: "relu" }));
+  model.add(
+    tf.layers.conv2d({ kernelSize: 3, filters: 32, activation: "relu" })
+  );
   model.add(tf.layers.maxPooling2d({ poolSize: [2, 2] }));
   model.add(tf.layers.flatten());
   model.add(tf.layers.dense({ units: 64, activation: "relu" }));
-  model.add(tf.layers.dense({ units: cards.length, activation: "softmax" }));
+  model.add(tf.layers.dense({ units: unitSize, activation: "softmax" }));
 
   model.compile({
     optimizer: "adam",
@@ -79,17 +86,19 @@ function createModel() {
 }
 
 // Train the model
-async function trainModel() {
-  const model = await loadOrCreateModel();
-  const { images, labels } = await fetchAndPreprocessImages();
+async function trainModel(cards) {
+  const model = await loadOrCreateModel(cards);
+  const { images, labels } = await fetchAndPreprocessImages(cards);
 
   console.log(`Fetched ${images.length} images.`);
 
   const xs = tf.stack(images);
-  const ys = tf.tensor1d(labels.map(label => cards.findIndex(card => card.id === label)));
+  const ys = tf.tensor1d(
+    labels.map((label) => cards.findIndex((card) => card.id === label))
+  );
 
   await model.fit(xs, ys, {
-    epochs: 10,
+    epochs: 20,
     callbacks: tf.callbacks.earlyStopping({ patience: 3 }),
   });
 
@@ -99,5 +108,3 @@ async function trainModel() {
   // Dispose the tensors
   tf.dispose([xs, ys]);
 }
-
-trainModel();
